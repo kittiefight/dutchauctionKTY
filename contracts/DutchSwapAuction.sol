@@ -1,6 +1,7 @@
 pragma solidity ^0.6.9;
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+import "./authority/Owned.sol";
 import "./libs/SafeMath.sol";
 import "./interfaces/IERC20.sol";
 
@@ -16,7 +17,7 @@ import "./interfaces/IERC20.sol";
 // ----------------------------------------------------------------------------
 
 
-contract DutchSwapAuction  {
+contract DutchSwapAuction is Owned {
 
     using SafeMath for uint256;
     uint256 private constant TENPOW18 = 10 ** 18;
@@ -29,6 +30,7 @@ contract DutchSwapAuction  {
     uint256 public startPrice;
     uint256 public minimumPrice;
     uint256 public tokenSupply;
+    uint256 public tokenSold;
     bool public finalised;
     IERC20 public auctionToken; 
     IERC20 public paymentCurrency; 
@@ -48,7 +50,7 @@ contract DutchSwapAuction  {
         uint256 _minimumPrice, 
         address payable _wallet
     ) 
-        external 
+        external onlyOwner
     {
         require(_endDate > _startDate);
         require(_startPrice > _minimumPrice);
@@ -86,7 +88,7 @@ contract DutchSwapAuction  {
 
     /// @notice The average price of each token from all commitments. 
     function tokenPrice() public view returns (uint256) {
-        return amountRaised.mul(TENPOW18).div(tokenSupply);
+        return amountRaised.mul(TENPOW18).div(tokenSold);
     }
 
     /// @notice Token price decreases at this rate during auction.
@@ -110,33 +112,16 @@ contract DutchSwapAuction  {
         return price;
     }
 
-    /// @notice The current clearing price of the Dutch auction
-    function clearingPrice() public view returns (uint256) {
-        /// @dev If auction successful, return tokenPrice
-        if (tokenPrice() > priceFunction()) {
-            return tokenPrice();
-        }
-        return priceFunction();
-    }
-
     /// @notice How many tokens the user is able to claim
     function tokensClaimable(address _user) public view returns (uint256) {
-        return commitments[_user].mul(TENPOW18).div(clearingPrice());
-    }
-
-    /// @notice Total amount of tokens committed at current auction price
-    function totalTokensCommitted() public view returns(uint256) {
-        return amountRaised.mul(TENPOW18).div(clearingPrice());
-    }
-
-    /// @notice Successful if tokens sold equals tokenSupply
-    function auctionSuccessful() public view returns (bool){
-        return totalTokensCommitted() >= tokenSupply && tokenPrice() >= minimumPrice;
+        if(!auctionEnded())
+            return 0;
+        return commitments[_user].mul(TENPOW18).div(tokenPrice());
     }
 
     /// @notice Returns bool if successful or time has ended
     function auctionEnded() public view returns (bool){
-        return auctionSuccessful() || now > endDate;
+        return now > endDate;
     }
 
     //--------------------------------------------------------
@@ -151,10 +136,16 @@ contract DutchSwapAuction  {
     /// @notice Commit ETH to buy tokens on sale
     function commitEth (address payable _from) public payable {
         require(address(paymentCurrency) == ETH_ADDRESS);
+
+        uint256 tokensToPurchase = msg.value.mul(TENPOW18).div(priceFunction());
         // Get ETH able to be committed
-        uint256 ethToTransfer = calculateCommitment( msg.value);
+        uint256 tokensPurchased = calculatePurchasable(tokensToPurchase);
+
+        tokenSold = tokenSold.add(tokensPurchased);
 
         // Accept ETH Payments
+        uint256 ethToTransfer = tokensPurchased < tokensToPurchase ? msg.value.mul(tokensPurchased).div(tokensToPurchase) : msg.value;
+
         uint256 ethToRefund = msg.value.sub(ethToTransfer);
         if (ethToTransfer > 0) {
             addCommitment(_from, ethToTransfer);
@@ -173,30 +164,15 @@ contract DutchSwapAuction  {
         emit AddedCommitment(_addr, _commitment, tokenPrice());
     }
 
-    /// @notice Commit approved ERC20 tokens to buy tokens on sale
-    function commitTokens (uint256 _amount) public {
-        commitTokensFrom(msg.sender, _amount);
-    }
-
-    /// @dev Users must approve contract prior to committing tokens to auction
-    function commitTokensFrom (address _from, uint256 _amount) public {
-        require(address(paymentCurrency) != ETH_ADDRESS);
-        uint256 tokensToTransfer = calculateCommitment( _amount);
-        if (tokensToTransfer > 0) {
-            require(IERC20(paymentCurrency).transferFrom(_from, address(this), _amount));
-            addCommitment(_from, tokensToTransfer);
-        }
-    }
-
-    /// @notice Returns the amout able to be committed during an auction
-    function calculateCommitment( uint256 _commitment) 
-        public view returns (uint256 committed) 
+    /// @notice Returns the amount able to be committed during an auction
+    function calculatePurchasable(uint256 _tokensToPurchase) 
+        public view returns (uint256)
     {
-        uint256 maxCommitment = tokenSupply.mul(clearingPrice()).div(TENPOW18);
-        if (amountRaised.add(_commitment) > maxCommitment) {
-            return maxCommitment.sub(amountRaised);
+        uint256 maxPurchasable = tokenSupply.sub(tokenSold);
+        if (_tokensToPurchase > maxPurchasable) {
+            return maxPurchasable;
         }
-        return _commitment;
+        return _tokensToPurchase;
     }
 
 
@@ -207,37 +183,22 @@ contract DutchSwapAuction  {
     /// @notice Auction finishes successfully above the reserve
     /// @dev Transfer contract funds to initialised wallet. 
     function finaliseAuction () public {
-        require(!finalised); 
+        require(!finalised && auctionEnded());
         finalised = true;
 
-        /// @notice Auction did not meet reserve price.
-        if( auctionEnded() && tokenPrice() < minimumPrice ) {
-            _tokenPayment(auctionToken, wallet, tokenSupply);       
-            return;      
-        }
-        /// @notice Successful auction! Transfer tokens bought.
-        if (auctionSuccessful()) {
-            _tokenPayment(paymentCurrency, wallet, amountRaised);
-        }
+        _tokenPayment(paymentCurrency, wallet, amountRaised);
 
     }
 
     /// @notice Withdraw your tokens once the Auction has ended.
     function withdrawTokens() public {
+        require(auctionEnded(), "DutchSwapAuction: Auction still live");
         uint256 fundsCommitted = commitments[ msg.sender];
         uint256 tokensToClaim = tokensClaimable(msg.sender);
         commitments[ msg.sender] = 0;
 
-        /// @notice Auction did not meet reserve price.
-        /// @dev Return committed funds back to user.
-        if( auctionEnded() && tokenPrice() < minimumPrice ) {
-            _tokenPayment(paymentCurrency, msg.sender, fundsCommitted);       
-            return;      
-        }
         /// @notice Successful auction! Transfer tokens bought.
-        /// @dev AG: Should hold and distribute tokens vs mint
-        /// @dev AG: Could be only > min to allow early withdraw  
-        if (auctionSuccessful() && tokensToClaim > 0 ) {
+        if (tokensToClaim > 0 ) {
             _tokenPayment(auctionToken, msg.sender, tokensToClaim);
         }
     }

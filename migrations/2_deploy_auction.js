@@ -18,12 +18,24 @@ module.exports = (deployer, network, accounts) => {
     .then(async () => {
       console.log("\nGetting contract instances...");
 
-      // VestingVault12
+      // DutchSwapAuction
       dutchSwapAuction = await DutchSwapAuction.deployed();
       console.log("DutchSwapAuction:", dutchSwapAuction.address);
 
       // TOKENS
       kittieFightToken = await KittieFightToken.deployed();
       console.log(kittieFightToken.address);
+
+      // initializing contract ...
+    //   let token = kittieFightToken.address
+    //   let tokenSupply = new BigNumber(
+    //     web3.utils.toWei("1000000", "ether") //1 Million
+    //   );
+    //   let startDate = Math.floor(new Date().getTime() / 1000) + 30 // now + 30 sec
+    //   let endDate = startDate + 30 * 24 * 60 * 60  // end in 30 days
+   
+
+
+
     });
 };
