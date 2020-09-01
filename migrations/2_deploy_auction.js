@@ -27,15 +27,24 @@ module.exports = (deployer, network, accounts) => {
       console.log(kittieFightToken.address);
 
       // initializing contract ...
-    //   let token = kittieFightToken.address
-    //   let tokenSupply = new BigNumber(
-    //     web3.utils.toWei("1000000", "ether") //1 Million
-    //   );
-    //   let startDate = Math.floor(new Date().getTime() / 1000) + 30 // now + 30 sec
-    //   let endDate = startDate + 30 * 24 * 60 * 60  // end in 30 days
-   
+      let token = kittieFightToken.address
+      let tokenSupply = new BigNumber(
+        web3.utils.toWei("1000000", "ether") //1 Million
+      );
+      let startDate = Math.floor(new Date().getTime() / 1000) + 30 // now + 30 sec
+      let endDate = startDate + 30 * 24 * 60 * 60  // end in 30 days
+      let startPrice = new BigNumber(
+        web3.utils.toWei("0.01", "ether") // 0.01 x 300 = $3
+      );
+      let minimumPrice = new BigNumber(
+        web3.utils.toWei("0.001", "ether") // 0.01 x 300 = $0.3
+      );
+      let wallet = accounts[0]
 
+      await kittieFightToken.approve(dutchSwapAuction.address, tokenSupply)
 
-
+      await dutchSwapAuction.initDutchAuction(
+        token, tokenSupply, startDate, endDate, startPrice, minimumPrice, wallet
+      )
     });
 };

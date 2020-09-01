@@ -33,11 +33,20 @@ contract DutchSwapAuction is Owned {
     uint256 public tokenSold;
     bool public finalised;
     IERC20 public auctionToken; 
-    IERC20 public paymentCurrency; 
+    //IERC20 public paymentCurrency; 
     address payable public wallet;
     mapping(address => uint256) public commitments;
 
+    uint256 private unlocked = 1;
+
     event AddedCommitment(address addr, uint256 commitment, uint256 price);
+
+    modifier lock() {
+        require(unlocked == 1, 'Locked');
+        unlocked = 0;
+        _;
+        unlocked = 1;
+    }       
 
     /// @dev Init function 
     function initDutchAuction(
@@ -45,7 +54,7 @@ contract DutchSwapAuction is Owned {
         uint256 _tokenSupply, 
         uint256 _startDate, 
         uint256 _endDate,
-        address _paymentCurrency, 
+        //address _paymentCurrency, 
         uint256 _startPrice, 
         uint256 _minimumPrice, 
         address payable _wallet
@@ -57,7 +66,7 @@ contract DutchSwapAuction is Owned {
         require(_minimumPrice > 0);
 
         auctionToken = IERC20(_token);
-        paymentCurrency = IERC20(_paymentCurrency);
+        //paymentCurrency = IERC20(_paymentCurrency);
 
         require(IERC20(auctionToken).transferFrom(msg.sender, address(this), _tokenSupply));
 
@@ -134,8 +143,8 @@ contract DutchSwapAuction is Owned {
     }
 
     /// @notice Commit ETH to buy tokens on sale
-    function commitEth (address payable _from) public payable {
-        require(address(paymentCurrency) == ETH_ADDRESS);
+    function commitEth (address payable _from) public payable lock {
+        //require(address(paymentCurrency) == ETH_ADDRESS);
 
         uint256 tokensToPurchase = msg.value.mul(TENPOW18).div(priceFunction());
         // Get ETH able to be committed
@@ -186,12 +195,12 @@ contract DutchSwapAuction is Owned {
         require(!finalised && auctionEnded());
         finalised = true;
 
-        _tokenPayment(paymentCurrency, wallet, amountRaised);
-
+        //_tokenPayment(paymentCurrency, wallet, amountRaised);
+        wallet.transfer(amountRaised);
     }
 
     /// @notice Withdraw your tokens once the Auction has ended.
-    function withdrawTokens() public {
+    function withdrawTokens() public lock {
         require(auctionEnded(), "DutchSwapAuction: Auction still live");
         uint256 fundsCommitted = commitments[ msg.sender];
         uint256 tokensToClaim = tokensClaimable(msg.sender);
