@@ -52,8 +52,8 @@ contract DutchSwapAuction is Owned {
     function initDutchAuction(
         address _token, 
         uint256 _tokenSupply, 
-        uint256 _startDate, 
-        uint256 _endDate,
+        //uint256 _startDate, 
+        uint256 _auctionDuration,
         //address _paymentCurrency, 
         uint256 _startPrice, 
         uint256 _minimumPrice, 
@@ -61,7 +61,7 @@ contract DutchSwapAuction is Owned {
     ) 
         external onlyOwner
     {
-        require(_endDate > _startDate);
+        require(_auctionDuration > 0);
         require(_startPrice > _minimumPrice);
         require(_minimumPrice > 0);
 
@@ -71,8 +71,8 @@ contract DutchSwapAuction is Owned {
         require(IERC20(auctionToken).transferFrom(msg.sender, address(this), _tokenSupply));
 
         tokenSupply =_tokenSupply;
-        startDate = _startDate;
-        endDate = _endDate;
+        startDate = block.timestamp;
+        endDate = block.timestamp.add(_auctionDuration);
         startPrice = _startPrice;
         minimumPrice = _minimumPrice; 
         wallet = _wallet;

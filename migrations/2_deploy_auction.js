@@ -31,8 +31,9 @@ module.exports = (deployer, network, accounts) => {
       let tokenSupply = new BigNumber(
         web3.utils.toWei("100000", "ether") //100,000 KTY
       );
-      let startDate = Math.floor(new Date().getTime() / 1000)   // now 
-      let endDate = startDate + 30 * 24 * 60 * 60  // end in 30 days
+      //let startDate = Math.floor(new Date().getTime() / 1000)   // now 
+      //let endDate = startDate + 30 * 24 * 60 * 60  // end in 30 days
+      let auctionDuration = 30 * 24 * 60 * 60  // end in 30 days
       let startPrice = new BigNumber(
         web3.utils.toWei("0.01", "ether") // 0.01 x 300 = $3
       );
@@ -44,7 +45,7 @@ module.exports = (deployer, network, accounts) => {
       await kittieFightToken.approve(dutchSwapAuction.address, tokenSupply)
 
       await dutchSwapAuction.initDutchAuction(
-        token, tokenSupply, startDate, endDate, startPrice, minimumPrice, wallet
+        token, tokenSupply, auctionDuration, startPrice, minimumPrice, wallet
       )
     });
 };
