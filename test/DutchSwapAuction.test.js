@@ -220,8 +220,8 @@ contract("DutchSwapAuction", (accounts) => {
       amountRaised,
       tokensClaimable;
 
-    for (let i = 21; i < 31; i++) {
-      random = randomValue(80);
+    for (let i = 21; i < 48; i++) {
+      random = randomValue(88);
 
       ETEHR_PAYMENT = new BigNumber(
         web3.utils.toWei(random.toString(), "ether") // 10 ether
@@ -261,6 +261,16 @@ contract("DutchSwapAuction", (accounts) => {
       );
     }
   });
+
+  it("bidders cannot withdraw auction tokens before auction is finalized", async() => {
+    for (let i = 0; i < 21; i++) {
+      await dutchSwapAuction.withdrawTokens({ from: accounts[i] }).should.be.rejected;
+    }
+  })
+
+  it("auction cannot be finalized before auction is ended", async() => {
+    await dutchSwapAuction.finaliseAuction().should.be.rejected;
+  })
 
   it("finalizes auction", async () => {
     console.log("Time is flying...");
@@ -343,4 +353,5 @@ contract("DutchSwapAuction", (accounts) => {
     console.log("Amount Raised:", weiToEther(amountRaised), "ether");
     console.log("Has Auction ended?", hasAuctionEnded);
   });
+
 });

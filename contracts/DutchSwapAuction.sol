@@ -6,15 +6,15 @@ import "./libs/SafeMath.sol";
 import "./interfaces/IERC20.sol";
 
 
-// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------
 // DutchSwap Auction Contract
 //
 //
-// MVP prototype. DO NOT USE!
+// This contract is modified from the contract by (c) Adrian Guerrera. Deepyr Pty Ltd.  
+// (https://github.com/apguerrera/DutchSwap)
 //                        
-// (c) Adrian Guerrera. Deepyr Pty Ltd.                          
-// May 26 2020                                  
-// ----------------------------------------------------------------------------
+// Sep 02 2020                                  
+// -----------------------------------------------------------------------------------
 
 
 contract DutchSwapAuction is Owned {
