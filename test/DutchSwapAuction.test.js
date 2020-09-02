@@ -99,8 +99,8 @@ contract("DutchSwapAuction", (accounts) => {
     let tokenSold = await dutchSwapAuction.tokenSold.call();
     let amountRaised = await dutchSwapAuction.amountRaised.call();
 
-    console.log("Auction start date:", formatDate(startDate));
-    console.log("Auction end date:", formatDate(endDate));
+    console.log("Auction start date:", formatDate(Number(startDate.toString())));
+    console.log("Auction end date:", formatDate(Number(endDate.toString())));
     console.log("Current auction price:", weiToEther(price), "ether");
     console.log("Total token supply:", weiToEther(tokenSupply));
     console.log("Tokens Sold:", weiToEther(tokenSold));
@@ -353,5 +353,16 @@ contract("DutchSwapAuction", (accounts) => {
     console.log("Amount Raised:", weiToEther(amountRaised), "ether");
     console.log("Has Auction ended?", hasAuctionEnded);
   });
+
+  it("no one can commit ether after auction is ended", async () => {
+    let ETEHR_PAYMENT = new BigNumber(
+      web3.utils.toWei("10", "ether") // 10 ether
+    );
+
+    await dutchSwapAuction.commitEth(accounts[49], {
+      from: accounts[49],
+      value: ETEHR_PAYMENT,
+    }).should.be.rejected;
+  })
 
 });

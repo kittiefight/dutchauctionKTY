@@ -145,6 +145,7 @@ contract DutchSwapAuction is Owned {
     /// @notice Commit ETH to buy tokens on sale
     function commitEth (address payable _from) public payable lock {
         //require(address(paymentCurrency) == ETH_ADDRESS);
+        require(block.timestamp >= startDate && block.timestamp <= endDate);
 
         uint256 tokensToPurchase = msg.value.mul(TENPOW18).div(priceFunction());
         // Get ETH able to be committed
@@ -210,6 +211,14 @@ contract DutchSwapAuction is Owned {
         if (tokensToClaim > 0 ) {
             _tokenPayment(auctionToken, msg.sender, tokensToClaim);
         }
+    }
+
+    /// @dev This function transfers unbidded auction token to a new address after auction ends
+    /// @dev This function can only be carreid out by the owner of this contract.
+    function transferLeftOver(uint256 _amount, address payable _addr) external onlyOwner returns (bool) {
+        require(_amount > 0, "Cannot transfer 0 tokens");
+        _tokenPayment(auctionToken, _addr, _amount);
+        return true;
     }
 
     /// @dev Helper function to handle both ETH and ERC20 payments
