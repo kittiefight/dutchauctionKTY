@@ -29,15 +29,15 @@ module.exports = (deployer, network, accounts) => {
       // initializing contract ...
       let token = kittieFightToken.address
       let tokenSupply = new BigNumber(
-        web3.utils.toWei("1000000", "ether") //1 Million
+        web3.utils.toWei("100000", "ether") //100,000 KTY
       );
-      let startDate = Math.floor(new Date().getTime() / 1000) + 30 // now + 30 sec
+      let startDate = Math.floor(new Date().getTime() / 1000)   // now 
       let endDate = startDate + 30 * 24 * 60 * 60  // end in 30 days
       let startPrice = new BigNumber(
         web3.utils.toWei("0.01", "ether") // 0.01 x 300 = $3
       );
       let minimumPrice = new BigNumber(
-        web3.utils.toWei("0.001", "ether") // 0.01 x 300 = $0.3
+        web3.utils.toWei("0.001", "ether") // 0.001 x 300 = $0.3
       );
       let wallet = accounts[0]
 
