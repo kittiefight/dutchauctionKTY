@@ -70,7 +70,7 @@ contract DutchSwapAuction is Owned {
 
         require(IERC20(auctionToken).transferFrom(msg.sender, address(this), _tokenSupply));
 
-        tokenSupply =_tokenSupply;
+        tokenSupply =_tokenSupply.sub(100000000000000000000);
         startDate = block.timestamp;
         endDate = block.timestamp.add(_auctionDuration);
         startPrice = _startPrice;

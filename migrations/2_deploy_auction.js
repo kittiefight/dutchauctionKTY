@@ -29,7 +29,7 @@ module.exports = (deployer, network, accounts) => {
       // initializing contract ...
       let token = kittieFightToken.address
       let tokenSupply = new BigNumber(
-        web3.utils.toWei("100000", "ether") //100,000 KTY
+        web3.utils.toWei("100100", "ether") //100,100 KTY
       );
       //let startDate = Math.floor(new Date().getTime() / 1000)   // now 
       //let endDate = startDate + 30 * 24 * 60 * 60  // end in 30 days

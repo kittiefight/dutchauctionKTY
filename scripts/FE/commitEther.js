@@ -82,7 +82,7 @@ module.exports = async (callback) => {
 
     // Bidders commit ether
     for (let i = 1; i <= amount; i++) {
-      random = randomValue(10);
+      random = randomValue(3);
 
       ether_payment = new BigNumber(
         web3.utils.toWei(random.toString(), "ether")
@@ -125,7 +125,7 @@ module.exports = async (callback) => {
 
     // Bidders commit ether again
     for (let i = 1; i <= amount; i++) {
-      random = randomValue(80);
+      random = randomValue(87);
 
       ether_payment = new BigNumber(
         web3.utils.toWei(random.toString(), "ether")
