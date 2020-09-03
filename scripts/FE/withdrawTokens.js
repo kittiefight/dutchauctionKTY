@@ -89,8 +89,8 @@ module.exports = async (callback) => {
     let tokensSoldRealValue =
       weiToEther(amountRaised) / weiToEther(averagePrice);
 
-    // transfer any unbidded auction tokens to a new address, so those unbidded tokens
-    // won't be locked in this contract
+    // if tokens sold real value is less than the token supply, transfer the extra
+    // needed KTY to auction contract 
     if (weiToEther(tokenSupply) < tokensSoldRealValue) {
         let neededTokens 
       let insufficiency = tokensSoldRealValue - Number(weiToEther(tokenSupply));
