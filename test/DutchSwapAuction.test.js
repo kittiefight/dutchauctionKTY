@@ -9,20 +9,7 @@ require("chai")
 const DutchSwapAuction = artifacts.require("DutchSwapAuction");
 const KittieFightToken = artifacts.require("KittieFightToken");
 
-const editJsonFile = require("edit-json-file");
 const { assert } = require("chai");
-let file;
-
-function timeout(s) {
-  // console.log(`~~~ Timeout for ${s} seconds`);
-  return new Promise((resolve) => setTimeout(resolve, s * 1000));
-}
-
-function formatDate(timestamp) {
-  let date = new Date(null);
-  date.setSeconds(timestamp);
-  return date.toTimeString().replace(/.*(\d{2}:\d{2}:\d{2}).*/, "$1");
-}
 
 function randomValue(num) {
   return Math.floor(Math.random() * num) + 1; // (1-num) value
@@ -99,8 +86,8 @@ contract("DutchSwapAuction", (accounts) => {
     let tokenSold = await dutchSwapAuction.tokenSold.call();
     let amountRaised = await dutchSwapAuction.amountRaised.call();
 
-    console.log("Auction start date:", formatDate(Number(startDate.toString())));
-    console.log("Auction end date:", formatDate(Number(endDate.toString())));
+    console.log("Auction start date:", startDate.toString());
+    console.log("Auction end date:", endDate.toString());
     console.log("Current auction price:", weiToEther(price), "ether");
     console.log("Total token supply:", weiToEther(tokenSupply));
     console.log("Tokens Sold:", weiToEther(tokenSold));
