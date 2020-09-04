@@ -40,7 +40,7 @@ module.exports = (deployer, network, accounts) => {
       let minimumPrice = new BigNumber(
         web3.utils.toWei("0.001", "ether") // 0.001 x 300 = $0.3
       );
-      let withdrawDelay = 24 * 60 * 60 // delay 1 day in withdraw
+      let withdrawDelay = 3 * 24 * 60 * 60 // delay 3 days in withdraw
       let wallet = accounts[0]
 
       await kittieFightToken.approve(dutchSwapAuction.address, tokenSupply)

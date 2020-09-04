@@ -1,5 +1,4 @@
 pragma solidity ^0.6.9;
-// SPDX-License-Identifier: UNLICENSED
 
 import "../interfaces/IERC20.sol";
 import "../libs/SafeMath.sol";

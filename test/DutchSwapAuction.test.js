@@ -290,7 +290,49 @@ contract("DutchSwapAuction", (accounts) => {
     );
   });
 
-  it("bidders withdraw auction tokens after auction is finalized", async () => {
+  it("checks withdraw delay", async () => {
+    let withdrawDelay = await dutchSwapAuction.checkWithdraw()
+    console.log("Can withdraw?", withdrawDelay[0])
+    console.log("Time (in seconds) before withdraw:", withdrawDelay[1].toString())
+    assert.isFalse(withdrawDelay[0])
+    assert.isAbove(Number(withdrawDelay[1].toString()), 0)
+  })
+
+  it ("bidders cannot withdraw auction tokens before withdraw delay duration is over", async () => {
+    for (let i = 0; i < 21; i++) {
+      await dutchSwapAuction.withdrawTokens({ from: accounts[i] }).should.be.rejected;
+    }
+  })
+
+  it ("the owner can remove withdraw delay", async () => {
+    await dutchSwapAuction.removeWithdrawDelay()
+    let withdrawDelay = await dutchSwapAuction.checkWithdraw()
+    console.log("Can withdraw?", withdrawDelay[0])
+    console.log("Time (in seconds) before withdraw:", withdrawDelay[1].toString())
+    assert.isTrue(withdrawDelay[0])
+    assert.equal(Number(withdrawDelay[1].toString()), 0)
+  })
+
+  it ("the owner can add withdraw delay", async () => {
+    let _delay = 2 * 24 * 60 * 60 // 2 days
+    await dutchSwapAuction.addWithdrawDelay(_delay)
+    let withdrawDelay = await dutchSwapAuction.checkWithdraw()
+    // console.log(withdrawDelay)
+    console.log("Can withdraw?", withdrawDelay[0])
+    console.log("Time (in seconds) before withdraw:", withdrawDelay[1].toString())
+    assert.isFalse(withdrawDelay[0])
+    assert.isAbove(Number(withdrawDelay[1].toString()), 0)
+  })
+
+  it("bidders withdraw auction tokens after auction is finalized and after withdraw delay is over", async () => {
+    console.log("Time is flying...");
+    let advancement = 86400 * 2; // 2 Days
+    await advanceTimeAndBlock(advancement);
+
+    let withdrawDelay = await dutchSwapAuction.checkWithdraw()
+    console.log("Can withdraw?", withdrawDelay[0])
+    console.log("Time (in seconds) before withdraw:", withdrawDelay[1].toString())
+
     let bal_before,
       bal_after,
       price,

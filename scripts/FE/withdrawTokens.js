@@ -57,7 +57,7 @@ advanceTimeAndBlock = async (time) => {
   return Promise.resolve(web3.eth.getBlock("latest"));
 };
 
-//truffle exec scripts/FE/commitEther.js noOfBidders(uint) (Till 48)
+//truffle exec scripts/FE/withdrawTokens.js noOfBidders(uint) (Till 48)
 
 module.exports = async (callback) => {
   try {
@@ -70,10 +70,13 @@ module.exports = async (callback) => {
 
     // Time is flying away, and auction ends
     console.log("Time is flying...");
-    let advancement = 86400 * 2; // 2 Days
+    let advancement = 86400 * 4; // 30 - 29 + 3 = 4 Days
     await advanceTimeAndBlock(advancement);
     let hasAuctionEnded = await dutchSwapAuction.auctionEnded();
     console.log("Has Auction ended?", hasAuctionEnded);
+    let withdrawDelay = await dutchSwapAuction.checkWithdraw()
+    console.log("Can withdraw?", withdrawDelay[0])
+    console.log("Time (in seconds) before withdraw:", withdrawDelay[1].toString())
 
     // The owner finalizes the auction
     await dutchSwapAuction.finaliseAuction();

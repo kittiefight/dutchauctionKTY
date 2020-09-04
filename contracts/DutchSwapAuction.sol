@@ -1,5 +1,4 @@
 pragma solidity ^0.6.9;
-// SPDX-License-Identifier: GPL-3.0-or-later
 
 import "./authority/Owned.sol";
 import "./libs/SafeMath.sol";
@@ -138,12 +137,16 @@ contract DutchSwapAuction is Owned {
 
     /// @notice Returns true and 0 if delay time is 0, otherwise false and delay time (in seconds) 
     function checkWithdraw() public view returns (bool, uint256) {
+        if (block.timestamp < endDate) {
+            return (false, endDate.sub(block.timestamp).add(withdrawDelay));
+        }
+
         uint256 _elapsed = block.timestamp.sub(endDate);
         if (_elapsed >= withdrawDelay) {
             return (true, 0);
-        } 
-        
-        return (false, withdrawDelay.sub(_elapsed));
+        } else {
+            return (false, withdrawDelay.sub(_elapsed));
+        }
     }
 
     //--------------------------------------------------------
