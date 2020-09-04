@@ -32,6 +32,7 @@ contract DutchSwapAuction is Owned {
     uint256 public tokenSupply;
     uint256 public tokenSold;
     bool public finalised;
+    uint256 public withdrawDelay;   // delay in seconds preventing withdraws
     IERC20 public auctionToken; 
     //IERC20 public paymentCurrency; 
     address payable public wallet;
@@ -56,7 +57,8 @@ contract DutchSwapAuction is Owned {
         uint256 _auctionDuration,
         //address _paymentCurrency, 
         uint256 _startPrice, 
-        uint256 _minimumPrice, 
+        uint256 _minimumPrice,
+        uint256 _withdrawDelay,
         address payable _wallet
     ) 
         external onlyOwner
@@ -75,6 +77,7 @@ contract DutchSwapAuction is Owned {
         endDate = block.timestamp.add(_auctionDuration);
         startPrice = _startPrice;
         minimumPrice = _minimumPrice; 
+        withdrawDelay = _withdrawDelay;
         wallet = _wallet;
         finalised = false;
     }
@@ -133,6 +136,16 @@ contract DutchSwapAuction is Owned {
         return now > endDate;
     }
 
+    /// @notice Returns true and 0 if delay time is 0, otherwise false and delay time (in seconds) 
+    function checkWithdraw() public view returns (bool, uint256) {
+        uint256 _elapsed = block.timestamp.sub(endDate);
+        if (_elapsed >= withdrawDelay) {
+            return (true, 0);
+        } 
+        
+        return (false, withdrawDelay.sub(_elapsed));
+    }
+
     //--------------------------------------------------------
     // Commit to buying tokens 
     //--------------------------------------------------------
@@ -185,6 +198,22 @@ contract DutchSwapAuction is Owned {
         return _tokensToPurchase;
     }
 
+    //--------------------------------------------------------
+    // Modify WithdrawDelay In Auction 
+    //--------------------------------------------------------
+
+    /// @notice Removes withdraw delay
+    /// @dev This function can only be carreid out by the owner of this contract.
+    function removeWithdrawDelay() external onlyOwner {
+        withdrawDelay = 0;
+    }
+    
+    /// @notice Add withdraw delay
+    /// @dev This function can only be carreid out by the owner of this contract.
+    function addWithdrawDelay(uint256 _delay) external onlyOwner {
+        withdrawDelay = withdrawDelay.add(_delay);
+    }
+
 
     //--------------------------------------------------------
     // Finalise Auction
@@ -203,6 +232,8 @@ contract DutchSwapAuction is Owned {
     /// @notice Withdraw your tokens once the Auction has ended.
     function withdrawTokens() public lock {
         require(auctionEnded(), "DutchSwapAuction: Auction still live");
+        (bool canWithdraw,) = checkWithdraw();
+        require(canWithdraw == true, "DutchSwapAuction: Withdraw Delay");
         uint256 fundsCommitted = commitments[ msg.sender];
         uint256 tokensToClaim = tokensClaimable(msg.sender);
         commitments[ msg.sender] = 0;
@@ -213,7 +244,7 @@ contract DutchSwapAuction is Owned {
         }
     }
 
-    /// @dev This function transfers unbidded auction token to a new address after auction ends
+    /// @notice Transfer unbidded auction token to a new address after auction ends
     /// @dev This function can only be carreid out by the owner of this contract.
     function transferLeftOver(uint256 _amount, address payable _addr) external onlyOwner returns (bool) {
         require(_amount > 0, "Cannot transfer 0 tokens");
