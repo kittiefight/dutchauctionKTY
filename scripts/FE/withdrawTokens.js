@@ -1,7 +1,6 @@
 const BigNumber = web3.utils.BN;
 
 const DutchSwapAuction = artifacts.require("DutchSwapAuction");
-const KittieFightToken = artifacts.require("KittieFightToken");
 
 function randomValue(num) {
   return Math.floor(Math.random() * num) + 1; // (1-num) value
@@ -63,7 +62,6 @@ advanceTimeAndBlock = async (time) => {
 module.exports = async (callback) => {
   try {
     let dutchSwapAuction = await DutchSwapAuction.deployed();
-    let kittieFightToken = await KittieFightToken.deployed();
 
     accounts = await web3.eth.getAccounts();
 
@@ -80,54 +78,6 @@ module.exports = async (callback) => {
     // The owner finalizes the auction
     await dutchSwapAuction.finaliseAuction();
 
-    let price = await dutchSwapAuction.priceFunction();
-    let averagePrice = await dutchSwapAuction.tokenPrice();
-    let priceGradient = await dutchSwapAuction.priceGradient();
-    let tokenSupply = await dutchSwapAuction.tokenSupply.call();
-    let amountRaised = await dutchSwapAuction.amountRaised.call();
-    let tokenSoldAccounting = await dutchSwapAuction.tokenSold.call();
-    let tokensSoldRealValue =
-      weiToEther(amountRaised) / weiToEther(averagePrice);
-    let tokenSurplus = 0
-
-    // if tokens sold real value is less than the token supply, transfer the extra
-    // needed KTY to auction contract 
-    // if (weiToEther(tokenSupply) < tokensSoldRealValue) {
-    //     let neededTokens 
-    //   let insufficiency = tokensSoldRealValue - Number(weiToEther(tokenSupply));
-    //   console.log("Auction Tokens Needed:", insufficiency, "KTY");
-    //   if (insufficiency < 1) {
-    //     neededTokens = new BigNumber(
-    //         web3.utils.toWei("1", "ether")   // 1 KTY
-    //       );
-    //   } else {
-    //     neededTokens = new BigNumber(
-    //         web3.utils.toWei(insufficiency.toString(), "ether")
-    //       );
-    //   }
-    //   kittieFightToken.transfer(dutchSwapAuction.address, neededTokens);
-    // }
-
-    if (weiToEther(tokenSupply) < tokensSoldRealValue) {
-    let insufficiency = tokensSoldRealValue - Number(weiToEther(tokenSupply));
-    console.log("Auction Tokens Sold Real Value Above Total Token Supply", insufficiency, "KTY");
-    if (insufficiency < 0.000001) {  // most often in this case
-      tokenSurplus = 99
-    }
-    if (insufficiency < 100) {
-      tokenSurplus = 100 - insufficiency
-    }
-    if (insufficiency > 100) {  // this would be extremely rare
-      let tokenNeeded = insufficiency - 100
-      kittieFightToken.transfer(dutchSwapAuction.address, tokenNeeded);
-    }
-
-    if (tokenSurplus > 0) { 
-      console.log("Total surplus:", tokenSurplus)
-      dutchSwapAuction.transferLeftOver(tokenSurplus, accounts[0]);  // this can be done at any time after finalizing the auction
-    }
-  }
-
     // Bidders withdraw auction tokens after auction is finalized
     for (let i = 1; i <= amount; i++) {
       let tokensClaimable = await dutchSwapAuction.tokensClaimable(accounts[i]);
@@ -137,9 +87,45 @@ module.exports = async (callback) => {
       await dutchSwapAuction.withdrawTokens({ from: accounts[i] });
     }
 
+    let price = await dutchSwapAuction.priceFunction();
+    let averagePrice = await dutchSwapAuction.tokenPrice();
+    let priceGradient = await dutchSwapAuction.priceGradient();
+    let tokenSupply = await dutchSwapAuction.tokenSupply.call();
+    let amountRaised = await dutchSwapAuction.amountRaised.call();
+    let tokenSoldAccounting = await dutchSwapAuction.tokenSold.call();
+    let tokensSoldRealValue =
+      weiToEther(amountRaised) / weiToEther(averagePrice);
 
-    // transfer any unbidden tokens and any surplus tokens out of the contract
+    console.log("\n==== General Info ===");
+    console.log("Current auction price:", weiToEther(price), "ether");
+    console.log("Average auction price:", weiToEther(averagePrice), "ether");
+    console.log("Price Gradient:", weiToEther(priceGradient), "ether");
+    console.log("Total token supply:", weiToEther(tokenSupply));
+    console.log("Amount Raised:", weiToEther(amountRaised), "ether");
+    console.log("Tokens Sold Accounting:", weiToEther(tokenSoldAccounting));
+    console.log("Tokens Sold Real Value:", tokensSoldRealValue, "KTY");
+
+
+    // the owner transfers any unbidden tokens and any surplus tokens out of the contract
+    // This can be done by the owner at any time after finalizing auction
+    let tokenSurplus = 0
     let leftOver;
+
+    if (weiToEther(tokenSupply) < tokensSoldRealValue) {
+      let insufficiency = tokensSoldRealValue - Number(weiToEther(tokenSupply));
+      console.log("Auction Tokens Sold Real Value Above Total Token Supply", insufficiency, "KTY");
+      if (insufficiency < 0.000001) {  // most often in this case
+        tokenSurplus = 99
+      }
+      if (insufficiency < 100) {
+        tokenSurplus = 100 - insufficiency
+      }
+  
+      if (tokenSurplus > 0) { 
+        console.log("Total surplus:", tokenSurplus)
+        dutchSwapAuction.transferLeftOver(tokenSurplus, accounts[0]);  // this can be done at any time after finalizing the auction
+      }
+    }
 
     if (weiToEther(tokenSupply) == tokensSoldRealValue) {
       leftOver = new BigNumber(
@@ -159,15 +145,6 @@ module.exports = async (callback) => {
       );
       dutchSwapAuction.transferLeftOver(unbiddedTokens, accounts[0]);
     }
-
-    console.log("\n==== General Info ===");
-    console.log("Current auction price:", weiToEther(price), "ether");
-    console.log("Average auction price:", weiToEther(averagePrice), "ether");
-    console.log("Price Gradient:", weiToEther(priceGradient), "ether");
-    console.log("Total token supply:", weiToEther(tokenSupply));
-    console.log("Amount Raised:", weiToEther(amountRaised), "ether");
-    console.log("Tokens Sold Accounting:", weiToEther(tokenSoldAccounting));
-    console.log("Tokens Sold Real Value:", tokensSoldRealValue, "KTY");
 
     callback();
   } catch (e) {
