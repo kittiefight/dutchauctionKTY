@@ -20,8 +20,6 @@ contract DutchSwapAuction is Owned {
 
     using SafeMath for uint256;
     uint256 private constant TENPOW18 = 10 ** 18;
-    /// @dev The placeholder ETH address.
-    address private constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     uint256 public amountRaised;
     uint256 public startDate;
@@ -34,7 +32,6 @@ contract DutchSwapAuction is Owned {
     uint256 public withdrawDelay;   // delay in seconds preventing withdraws
     uint256 public tokenWithdrawn;  // the amount of auction tokens already withdrawn by bidders
     IERC20 public auctionToken; 
-    //IERC20 public paymentCurrency; 
     address payable public wallet;
     mapping(address => uint256) public commitments;
 
@@ -55,7 +52,6 @@ contract DutchSwapAuction is Owned {
         uint256 _tokenSupply, 
         //uint256 _startDate, 
         uint256 _auctionDuration,
-        //address _paymentCurrency, 
         uint256 _startPrice, 
         uint256 _minimumPrice,
         uint256 _withdrawDelay,
@@ -63,15 +59,19 @@ contract DutchSwapAuction is Owned {
     ) 
         external onlyOwner
     {
-        require(_auctionDuration > 0);
-        require(_startPrice > _minimumPrice);
-        require(_minimumPrice > 0);
+        require(_auctionDuration > 0, "Auction duration should be longer than 0 seconds");
+        require(_startPrice > _minimumPrice, "Start price should be bigger than minimum price");
+        require(_minimumPrice > 0, "Minimum price should be bigger than 0");
 
         auctionToken = IERC20(_token);
-        //paymentCurrency = IERC20(_paymentCurrency);
 
-        require(IERC20(auctionToken).transferFrom(msg.sender, address(this), _tokenSupply));
+        require(IERC20(auctionToken).transferFrom(msg.sender, address(this), _tokenSupply), "Fail to transfer tokens to this contract");
 
+        // 100 tokens are subtracted from totalSupply to ensure that this contract holds more tokens than tokenSuppy.
+        // This is to prevent any reverting of withdrawTokens() in case of any insufficiency of tokens due to programming
+        // languages' inability to handle float precisely, which might lead to extremely small insufficiency in tokens
+        // to be distributed. This potentail insufficiency is extremely small (far less than 1 token), which is more than
+        // sufficiently compensated hence.       
         tokenSupply =_tokenSupply.sub(100000000000000000000);
         startDate = block.timestamp;
         endDate = block.timestamp.add(_auctionDuration);
@@ -113,27 +113,28 @@ contract DutchSwapAuction is Owned {
       /// @notice Returns price during the auction 
     function priceFunction() public view returns (uint256) {
         /// @dev Return Auction Price
-        if (now <= startDate) {
+        if (block.timestamp <= startDate) {
             return startPrice;
         }
-        if (now >= endDate) {
+        if (block.timestamp >= endDate) {
             return minimumPrice;
         }
-        uint256 priceDiff = now.sub(startDate).mul(priceGradient());
+        uint256 priceDiff = block.timestamp.sub(startDate).mul(priceGradient());
         uint256 price = startPrice.sub(priceDiff);
         return price;
     }
 
     /// @notice How many tokens the user is able to claim
     function tokensClaimable(address _user) public view returns (uint256) {
-        if(!auctionEnded())
+        if(!auctionEnded()) {
             return 0;
+        }
         return commitments[_user].mul(TENPOW18).div(tokenPrice());
     }
 
     /// @notice Returns bool if successful or time has ended
     function auctionEnded() public view returns (bool){
-        return now > endDate;
+        return block.timestamp > endDate;
     }
 
     /// @notice Returns true and 0 if delay time is 0, otherwise false and delay time (in seconds) 
@@ -199,7 +200,6 @@ contract DutchSwapAuction is Owned {
 
     /// @notice Commits to an amount during an auction
     function addCommitment(address _addr,  uint256 _commitment) internal {
-        require(now >= startDate && now <= endDate);
         commitments[_addr] = commitments[_addr].add(_commitment);
         amountRaised = amountRaised.add(_commitment);
         emit AddedCommitment(_addr, _commitment, tokenPrice());
@@ -266,6 +266,7 @@ contract DutchSwapAuction is Owned {
     /// @notice Transfer unbidded auction token to a new address after auction ends
     /// @dev This function can only be carreid out by the owner of this contract.
     function transferLeftOver(uint256 _amount, address payable _addr) external onlyOwner returns (bool) {
+        require(block.timestamp > endDate.add(withdrawDelay).add(7 * 24 * 60 * 60), "Cannot transfer auction tokens within 7 days after withdraw day");
         require(_amount > 0, "Cannot transfer 0 tokens");
         _tokenPayment(auctionToken, _addr, _amount);
         return true;
@@ -273,11 +274,7 @@ contract DutchSwapAuction is Owned {
 
     /// @dev Helper function to handle both ETH and ERC20 payments
     function _tokenPayment(IERC20 _token, address payable _to, uint256 _amount) internal {
-        if (address(_token) == ETH_ADDRESS) {
-            _to.transfer(_amount); 
-        } else {
-            require(_token.transfer(_to, _amount));
-        }
+        require(_token.transfer(_to, _amount), "Fail to transfer tokens");
     }
 
 }
