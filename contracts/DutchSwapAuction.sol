@@ -32,6 +32,7 @@ contract DutchSwapAuction is Owned {
     uint256 public tokenSold;
     bool public finalised;
     uint256 public withdrawDelay;   // delay in seconds preventing withdraws
+    uint256 public tokenWithdrawn;  // the amount of auction tokens already withdrawn by bidders
     IERC20 public auctionToken; 
     //IERC20 public paymentCurrency; 
     address payable public wallet;
@@ -149,6 +150,20 @@ contract DutchSwapAuction is Owned {
         }
     }
 
+    /// @notice Returns the amount of auction tokens already withdrawn by bidders
+    function getTokenWithdrawn() public view returns (uint256) {
+        return tokenWithdrawn;
+    }
+
+    /// @notice Returns the amount of auction tokens sold but not yet withdrawn by bidders
+    function getTokenNotYetWithdrawn() public view returns (uint256) {
+        if (block.timestamp < endDate) {
+            return tokenSold;
+        }
+        uint256 totalTokenSold = amountRaised.mul(TENPOW18).div(tokenPrice());
+        return totalTokenSold.sub(tokenWithdrawn);
+    }
+
     //--------------------------------------------------------
     // Commit to buying tokens 
     //--------------------------------------------------------
@@ -240,6 +255,7 @@ contract DutchSwapAuction is Owned {
         uint256 fundsCommitted = commitments[ msg.sender];
         uint256 tokensToClaim = tokensClaimable(msg.sender);
         commitments[ msg.sender] = 0;
+        tokenWithdrawn = tokenWithdrawn.add(tokensToClaim);
 
         /// @notice Successful auction! Transfer tokens bought.
         if (tokensToClaim > 0 ) {

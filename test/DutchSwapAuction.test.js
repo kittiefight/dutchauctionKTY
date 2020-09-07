@@ -85,6 +85,8 @@ contract("DutchSwapAuction", (accounts) => {
     let tokenSupply = await dutchSwapAuction.tokenSupply.call();
     let tokenSold = await dutchSwapAuction.tokenSold.call();
     let amountRaised = await dutchSwapAuction.amountRaised.call();
+    let totalTokensWithdrawn = await dutchSwapAuction.getTokenWithdrawn();
+    let totalTokensNotYetWithdrawn = await dutchSwapAuction.getTokenNotYetWithdrawn();
 
     console.log("Auction start date:", startDate.toString());
     console.log("Auction end date:", endDate.toString());
@@ -93,6 +95,8 @@ contract("DutchSwapAuction", (accounts) => {
     console.log("Tokens Sold:", weiToEther(tokenSold));
     console.log("Amount Raised:", weiToEther(amountRaised));
     console.log("Has Auction ended?", hasAuctionEnded);
+    console.log("Total auction tokens withdrawn:", weiToEther(totalTokensWithdrawn));
+    console.log("total auction tokens not yet withdrawn:", weiToEther(totalTokensNotYetWithdrawn));
   });
 
   it("a user can commit ether to buy auction token", async () => {
@@ -339,7 +343,9 @@ contract("DutchSwapAuction", (accounts) => {
       averagePrice,
       priceGradient,
       hasAuctionEnded,
-      tokensClaimable;
+      tokensClaimable,
+      totalTokensWithdrawn,
+      totalTokensNotYetWithdrawn;
     for (let i = 1; i < 21; i++) {
       console.log("Bidder:", accounts[i]);
       console.log("\n==== Before Withdrawn ===");
@@ -372,6 +378,8 @@ contract("DutchSwapAuction", (accounts) => {
     tokenSold = await dutchSwapAuction.tokenSold.call();
     amountRaised = await dutchSwapAuction.amountRaised.call();
     hasAuctionEnded = await dutchSwapAuction.auctionEnded();
+    totalTokensWithdrawn = await dutchSwapAuction.getTokenWithdrawn();
+    totalTokensNotYetWithdrawn = await dutchSwapAuction.getTokenNotYetWithdrawn();
 
     console.log("\n==== General Info ===");
     console.log("Current auction price:", weiToEther(price), "ether");
@@ -381,6 +389,8 @@ contract("DutchSwapAuction", (accounts) => {
     console.log("Tokens Sold:", weiToEther(tokenSold), "KTY");
     console.log("Amount Raised:", weiToEther(amountRaised), "ether");
     console.log("Has Auction ended?", hasAuctionEnded);
+    console.log("Total auction tokens withdrawn:", weiToEther(totalTokensWithdrawn));
+    console.log("total auction tokens not yet withdrawn:", weiToEther(totalTokensNotYetWithdrawn));
   });
 
   it("no one can commit ether after auction is ended", async () => {
@@ -405,7 +415,6 @@ contract("DutchSwapAuction", (accounts) => {
       );
       await dutchSwapAuction.transferLeftOver(unbiddedTokens, accounts[0]).should.be.fulfilled
     }
-    
   })
 
 });
