@@ -42,7 +42,7 @@
     "light-server": "^2.8.0",
     "solc": "^0.6.9",
     "solhint": "^1.1.10",
-    "solidity-coverage": "^0.4.15",
+    "solidity-coverage": "^0.7.10",
     "truffle": "^5.1.42",
     "truffle-hdwallet-provider": "^1.0.16",
     "web3": "^1.0.0-beta.51",
