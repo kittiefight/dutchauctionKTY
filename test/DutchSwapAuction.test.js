@@ -394,4 +394,18 @@ contract("DutchSwapAuction", (accounts) => {
     }).should.be.rejected;
   })
 
+  it("the owner can transfer unbidded auction tokens left in the auction contract to a new address", async () => {
+    let advancement = 86400 * 180; // 180 Days
+    await advanceTimeAndBlock(advancement);
+    let bal = await kittieFightToken.balanceOf(dutchSwapAuction.address)
+    console.log("Unbidded auction tokens:", weiToEther(bal))
+    if (Number(weiToEther(bal)) > 0) {
+      let unbiddedTokens = new BigNumber(
+        web3.utils.toWei(weiToEther(bal), "ether")
+      );
+      await dutchSwapAuction.transferLeftOver(unbiddedTokens, accounts[0]).should.be.fulfilled
+    }
+    
+  })
+
 });
