@@ -272,7 +272,7 @@ contract DutchSwapAuction is Owned {
         return true;
     }
 
-    /// @dev Helper function to handle both ETH and ERC20 payments
+    /// @dev Helper function to handle ERC20 payments
     function _tokenPayment(IERC20 _token, address payable _to, uint256 _amount) internal {
         require(_token.transfer(_to, _amount), "Fail to transfer tokens");
     }
