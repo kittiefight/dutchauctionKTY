@@ -1,5 +1,7 @@
 pragma solidity ^0.6.9;
 
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import "./authority/Owned.sol";
 import "./libs/SafeMath.sol";
 import "./interfaces/IERC20.sol";
@@ -253,6 +255,7 @@ contract DutchSwapAuction is Owned {
         (bool canWithdraw,) = checkWithdraw();
         require(canWithdraw == true, "DutchSwapAuction: Withdraw Delay");
         uint256 fundsCommitted = commitments[ msg.sender];
+        require(fundsCommitted > 0, "You have no bidded tokens");
         uint256 tokensToClaim = tokensClaimable(msg.sender);
         commitments[ msg.sender] = 0;
         tokenWithdrawn = tokenWithdrawn.add(tokensToClaim);

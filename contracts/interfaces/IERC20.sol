@@ -1,4 +1,5 @@
 pragma solidity ^0.6.2;
+// SPDX-License-Identifier: UNLICENSED
 
 interface IERC20 {
     function name() external view returns (string memory);

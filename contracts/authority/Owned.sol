@@ -1,4 +1,5 @@
 pragma solidity ^0.6.9;
+// SPDX-License-Identifier: UNLICENSED
 
 contract Owned {
     address payable public owner;
